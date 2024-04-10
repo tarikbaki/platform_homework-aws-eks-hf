@@ -76,7 +76,7 @@ Then cz c
 
 
 declare everything, including the installation of Argo CD and the configuration of our application on Argo CD. We will use Terraform to install the ArgoCD
-Create a GKE cluster.
+Create a cluster.
 Install Argo CD on it.
 Now, let’s look at the Terraform configuration.
 setup.yaml
