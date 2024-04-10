@@ -66,15 +66,21 @@ variable "tags" {
   default     = {}
 }
 
-################################################################################
-# Key Pair
-################################################################################
+variable "aws_region" {
+  description = "AWS region"
+}
+
+variable "cluster_name" {
+  description = "Name of the EKS cluster"
+}
+
+variable "log_retention_days" {
+  description = "Number of days to retain CloudWatch logs"
+  default     = 30
+}
+
+variable "sns_topic_arn" {
+  description = "ARN of the SNS topic for CloudWatch alarms"
+}
 
 
-################################################################################
-# Private Key END
-################################################################################
-
-#start
-
-#end
