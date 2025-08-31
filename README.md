@@ -1,85 +1,117 @@
 # platform_homework-aws-eks-hf
-deploying and managing applications using Kubernetes, implementing GitOps principles, and integrating AWS services within a DevOps context.
 
-Terraform folder contains all resource configuration without environment details. config folder contains environment specific values.
+This repository demonstrates application deployment and management with Kubernetes, implementation of GitOps principles, and integration of AWS services in a DevOps context.
 
-***
+## Repository Structure
+
+- **terraform/**: Contains base resource configurations (EKS, RDS, etc.). Environment-specific values are kept in the `config/` folder.
+- **kubernetes/manifests/**: Kubernetes deployment and service YAML files for your applications.
+- **.gitops/**: ArgoCD application and manifest files for GitOps workflows.
+
+```
 terraform/
-│
-├── eks/
-│   ├── main.tf
-│   ├── variables.tf
-│   └── outputs.tf
-│
-└── rds/
-    ├── main.tf
-    ├── variables.tf
-    └── outputs.tf
-
+  ├── eks/
+  │   ├── main.tf
+  │   ├── variables.tf
+  │   └── outputs.tf
+  └── rds/
+      ├── main.tf
+      ├── variables.tf
+      └── outputs.tf
 kubernetes/
-└── manifests/
-    ├── deployment1.yaml
-    ├── deployment2.yaml
-    ├── service1.yaml
-    └── service2.yaml
-
+  └── manifests/
+      ├── deployment1.yaml
+      ├── deployment2.yaml
+      ├── service1.yaml
+      └── service2.yaml
 .gitops/
-├── argocd-app.yaml
-├── README.md
-└── manifests/
-    ├── deployment1.yaml
-    ├── deployment2.yaml
-    ├── service1.yaml
-    └── service2.yaml
+  ├── argocd-app.yaml
+  ├── README.md
+  └── manifests/
+      ├── deployment1.yaml
+      ├── deployment2.yaml
+      ├── service1.yaml
+      └── service2.yaml
+```
 
-***
+---
 
-***
+## Helm Chart
 
+- **homework-helm**: Specify the AWS ALB ingress certificate here (`alb.ingress.kubernetes.io/` annotation).
+- Pod management uses the RollingUpdate strategy:
+  ```yaml
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  ```
+- Environment variables are managed securely via AWS Secrets Manager:
+  ```yaml
+  env:
+    - name: ...
+      valueFrom:
+        secretKeyRef:
+          name: aws-secret-manager
+  ```
 
-Helm chart
+---
 
-homework-helm The aws ingress certificate should be written here. ingress certificate : alb.ingress.kubernetes.io/
+## Requirements
 
-With the rolling method, pod management is carried out according to the increase and decrease in capacity.
+Ensure the following tools are installed:
 
-strategy: type: RollingUpdate rollingUpdate: maxSurge: 1 maxUnavailable: 0
+- **Homebrew**
+  ```bash
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  ```
+- **npm**
+  ```bash
+  brew install npm
+  ```
+- **Docker**
 
-The following env information is kept secret by aws secret manager. secretKeyRef: name: aws-secret-manager env:
+---
 
-***
+## Local Development & Running
 
-Requirements
+1. Install npm:
+   ```bash
+   brew install npm
+   ```
+2. Install npm dependencies:
+   ```bash
+   npm install
+   ```
+3. Start the application:
+   ```bash
+   docker compose -f docker/docker-compose.yml up -d
+   ```
+4. To start only the database:
+   ```bash
+   docker compose -f docker/docker-compose.yml up -d homework-db
+   ```
 
-brew
-To install brew /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)")
+### Commit Process
 
-npm
-To install npm brew install npm
+- For conventional commits using commitizen:
+  ```bash
+  brew install commitizen
+  npm run ktlintFormat
+  git add .
+  cz c
+  ```
 
-docker
+---
 
-Local Build
+## Argo CD Installation & Management
 
-brew install npm To install npm
-npm install For applying json package operations
-docker compose -f docker/docker-compose.yml up -d to run application
-docker compose -f docker/docker-compose.yml up -d homework-db to run db only
-Committing your changes
+### Installation
 
-To use commitizen you need to install using brew install commitizen
-Then npm run ktlintFormat
-Then git add .
-Then cz c
+Argo CD is installed using Terraform and Helm:
 
-***
-
-
-declare everything, including the installation of Argo CD and the configuration of our application on Argo CD. We will use Terraform to install the ArgoCD
-Create a cluster.
-Install Argo CD on it.
-Now, let’s look at the Terraform configuration.
-setup.yaml
+```hcl
 resource "helm_release" "argocd" {
   name             = "argocd"
   repository       = "https://argoproj.github.io/argo-helm"
@@ -89,8 +121,10 @@ resource "helm_release" "argocd" {
   version          = "3.35.4"
   values           = [file("argocd.yaml")]
 }
-# helm install argocd -n argocd -f values/argocd.yaml
-provider.tf
+```
+
+Helm provider configuration example:
+```hcl
 provider "helm" {
   kubernetes {
     config_path = "~/.kube/config"
@@ -98,7 +132,6 @@ provider "helm" {
 }
 terraform {
   required_version = ">= 1.0.0"
-
   required_providers {
     helm = {
       source  = "hashicorp/helm"
@@ -106,31 +139,42 @@ terraform {
     }
   }
 }
-values.yaml
----
+```
+
+Sample `values.yaml` customization:
+```yaml
 global:
   image:
     tag: "v2.6.6"
-
 dex:
   enabled: false
-
 server:
   extraArgs:
     - --insecure
+```
 
-***
-Accessing the Argo CD Web UI
-To access the Argo CD Web UI, you need to port-forward argocd-server service.
+---
 
-Run the following command to get the password
-apple@Ravindra-Singh ~ % k get secrets argocd-initial-admin-secret -o yam -n argocd
+### Accessing the Argo CD Web UI
 
-Let’s decode base64 encoded string
-echo “Z1RpcFFuUjc4UmI4bTliNw==” | base64 -d
-Now let’s log in using the credentials.
+1. Port-forward the argocd-server service:
+   ```bash
+   kubectl port-forward svc/argocd-server -n argocd 8080:443
+   ```
+2. Retrieve the initial Argo CD admin password:
+   ```bash
+   kubectl get secrets argocd-initial-admin-secret -o yaml -n argocd
+   ```
+3. Decode the base64-encoded password:
+   ```bash
+   echo "<base64-password>" | base64 -d
+   ```
+4. Log in to the Argo CD web UI using the credentials.
 
+---
 
-***
+## Notes
 
-***
+- All deployments, configurations, and secret management follow best practices for cloud-native DevOps.
+- For environment-specific configurations, refer to the `config/` directory.
+- For questions or contributions, please open an issue or pull request.
